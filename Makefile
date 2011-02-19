@@ -28,6 +28,8 @@
 # Jack client Makefile for USB/RAW MIDI sockets and character devices.
 #
 
+VERSION=1.0.0
+
 .if exists(%%PREFIX%%)
 PREFIX=		%%PREFIX%%
 .else
@@ -53,3 +55,18 @@ CFLAGS+=	-g
 LDFLAGS+=	-L${LIBDIR} -lpthread -ljack
 
 .include <bsd.prog.mk>
+
+package: clean
+
+	tar -jcvf temp.tar.bz2 \
+		Makefile *.[ch] jack_umidi.1
+
+	rm -rf jack_umidi-${VERSION}
+
+	mkdir jack_umidi-${VERSION}
+
+	tar -jxvf temp.tar.bz2 -C jack_umidi-${VERSION}
+
+	rm -rf temp.tar.bz2
+
+	tar -jcvf jack_umidi-${VERSION}.tar.bz2 jack_umidi-${VERSION}
