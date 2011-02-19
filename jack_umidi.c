@@ -476,7 +476,7 @@ main(int argc, char **argv)
 		errx(EX_UNAVAILABLE, "Could not register JACK process callback.");
 
 	if (read_name != NULL) {
-		snprintf(devname, sizeof(devname), "%s.RX", read_name);
+		snprintf(devname, sizeof(devname), "%s.TX", read_name);
 
 		output_port = jack_port_register(jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsOutput, 0);
@@ -486,7 +486,7 @@ main(int argc, char **argv)
 	}
 	if (write_name != NULL) {
 
-		snprintf(devname, sizeof(devname), "%s.TX", read_name);
+		snprintf(devname, sizeof(devname), "%s.RX", read_name);
 
 		input_port = jack_port_register(jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsInput, 0);
