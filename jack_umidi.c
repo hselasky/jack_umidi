@@ -311,25 +311,28 @@ umidi_read(jack_nframes_t nframes)
 	jack_midi_clear_buffer(buf);
 #endif
 
-	t = jack_frame_time(jack_client) + nframes - jack_last_frame_time(jack_client);
-
+	t = 0;
 	umidi_lock();
 	if (read_fd > -1) {
-		while (read(read_fd, data, sizeof(data)) == sizeof(data)) {
+		while ((t < nframes) &&
+		    (read(read_fd, data, sizeof(data)) == sizeof(data))) {
 			if (umidi_convert_to_usb(0, data[0])) {
 
 				len = umidi_cmd_to_len[midi_parse.temp_cmd[0] & 0xF];
-
+				if (len == 0)
+					continue;
 #ifdef JACK_MIDI_NEEDS_NFRAMES
 				buffer = jack_midi_event_reserve(buf, t, len, nframes);
 #else
 				buffer = jack_midi_event_reserve(buf, t, len);
 #endif
 				if (buffer == NULL) {
-					DPRINTF("jack_midi_event_reserve() failed, MIDI event lost\n");
+					DPRINTF("jack_midi_event_reserve() failed, "
+					    "MIDI event lost\n");
 					break;
 				}
 				memcpy(buffer, &midi_parse.temp_cmd[1], len);
+				t++;
 			}
 		}
 	}
@@ -369,7 +372,8 @@ umidi_watchdog(void *arg)
 			}
 		} else {
 			umidi_lock();
-			if (fcntl(read_fd, F_SETFL, (int)(O_NONBLOCK)) == -1) {
+			if (fcntl(read_fd, F_SETFL, (int)O_NONBLOCK) == -1) {
+				DPRINTF("Close read\n");
 				close(read_fd);
 				read_fd = -1;
 			}
@@ -386,6 +390,7 @@ umidi_watchdog(void *arg)
 		} else {
 			umidi_lock();
 			if (fcntl(write_fd, F_SETFL, (int)0) == -1) {
+				DPRINTF("Close write\n");
 				close(write_fd);
 				write_fd = -1;
 			}
