@@ -363,7 +363,9 @@ umidi_watchdog(void *arg)
 
 	while (1) {
 
-		if (read_fd < 0) {
+		if (read_name == NULL) {
+			/* do nothing */
+		} else if (read_fd < 0) {
 			fd = open(read_name, O_RDONLY | O_NONBLOCK);
 			if (fd > -1) {
 				umidi_lock();
@@ -380,7 +382,9 @@ umidi_watchdog(void *arg)
 			umidi_unlock();
 		}
 
-		if (write_fd < 0) {
+		if (write_name == NULL) {
+			/* do nothing */
+		} else if (write_fd < 0) {
 			fd = open(write_name, O_WRONLY);
 			if (fd > -1) {
 				umidi_lock();
