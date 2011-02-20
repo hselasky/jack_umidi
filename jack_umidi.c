@@ -356,6 +356,12 @@ umidi_process_callback(jack_nframes_t nframes, void *reserved)
 	return (0);
 }
 
+static void
+umidi_jack_shutdown(void *arg)
+{
+	exit(0);
+}
+
 static void *
 umidi_watchdog(void *arg)
 {
@@ -468,31 +474,42 @@ main(int argc, char **argv)
 	pthread_mutex_init(&umidi_mtx, NULL);
 
 	jack_client = jack_client_open(PACKAGE_NAME, JackNullOption, NULL);
-	if (jack_client == NULL)
-		errx(EX_UNAVAILABLE, "Could not connect to the JACK server. Run jackd first?");
-
-	error = jack_set_process_callback(jack_client, umidi_process_callback, 0);
-	if (error)
-		errx(EX_UNAVAILABLE, "Could not register JACK process callback.");
+	if (jack_client == NULL) {
+		errx(EX_UNAVAILABLE, "Could not connect "
+		    "to the JACK server. Run jackd first?");
+	}
+	error = jack_set_process_callback(jack_client,
+	    umidi_process_callback, 0);
+	if (error) {
+		errx(EX_UNAVAILABLE, "Could not register "
+		    "JACK process callback.");
+	}
+	jack_on_shutdown(jack_client, umidi_jack_shutdown, 0);
 
 	if (read_name != NULL) {
 		snprintf(devname, sizeof(devname), "%s.TX", read_name);
 
-		output_port = jack_port_register(jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
+		output_port = jack_port_register(
+		    jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsOutput, 0);
 
-		if (output_port == NULL)
-			errx(EX_UNAVAILABLE, "Could not register JACK output port.");
+		if (output_port == NULL) {
+			errx(EX_UNAVAILABLE, "Could not "
+			    "register JACK output port.");
+		}
 	}
 	if (write_name != NULL) {
 
 		snprintf(devname, sizeof(devname), "%s.RX", read_name);
 
-		input_port = jack_port_register(jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
+		input_port = jack_port_register(
+		    jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsInput, 0);
 
-		if (input_port == NULL)
-			errx(EX_UNAVAILABLE, "Could not register JACK input port.");
+		if (input_port == NULL) {
+			errx(EX_UNAVAILABLE, "Could not "
+			    "register JACK input port.");
+		}
 	}
 	if (jack_activate(jack_client))
 		errx(EX_UNAVAILABLE, "Cannot activate JACK client.");
