@@ -473,7 +473,8 @@ main(int argc, char **argv)
 
 	pthread_mutex_init(&umidi_mtx, NULL);
 
-	jack_client = jack_client_open(PACKAGE_NAME, JackNullOption, NULL);
+	jack_client = jack_client_open(PACKAGE_NAME,
+	    JackNoStartServer, NULL);
 	if (jack_client == NULL) {
 		errx(EX_UNAVAILABLE, "Could not connect "
 		    "to the JACK server. Run jackd first?");
