@@ -504,7 +504,7 @@ main(int argc, char **argv)
 
 	if (read_name != NULL) {
 		output_port = jack_port_register(
-		    jack_client, "TX", JACK_DEFAULT_MIDI_TYPE,
+		    jack_client, "midi.TX", JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsOutput, 0);
 
 		if (output_port == NULL) {
@@ -515,7 +515,7 @@ main(int argc, char **argv)
 	if (write_name != NULL) {
 
 		input_port = jack_port_register(
-		    jack_client, "RX", JACK_DEFAULT_MIDI_TYPE,
+		    jack_client, "midi.RX", JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsInput, 0);
 
 		if (input_port == NULL) {
