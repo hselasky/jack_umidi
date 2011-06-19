@@ -74,7 +74,7 @@ struct midi_parse {
 static struct midi_parse midi_parse;
 
 #ifdef HAVE_DEBUG
-#define	DPRINTF(fmt, ...) printf("%s:%d" fmt,## __VA_ARGS__)
+#define	DPRINTF(fmt, ...) printf("%s:%d: " fmt, __FUNCTION__, __LINE__,## __VA_ARGS__)
 #else
 #define	DPRINTF(fmt, ...) do { } while (0)
 #endif
@@ -435,7 +435,8 @@ main(int argc, char **argv)
 {
 	int error;
 	int c;
-	char devname[128];
+	const char *pname;
+	char devname[64];
 
 	while ((c = getopt(argc, argv, "Bd:hP:C:")) != -1) {
 		switch (c) {
@@ -473,7 +474,21 @@ main(int argc, char **argv)
 
 	pthread_mutex_init(&umidi_mtx, NULL);
 
-	jack_client = jack_client_open(PACKAGE_NAME,
+	if (read_name != NULL) {
+		if (strncmp(read_name, "/dev/", 5) == 0)
+			pname = read_name + 5;
+		else
+			pname = read_name;
+	} else {
+		if (strncmp(write_name, "/dev/", 5) == 0)
+			pname = write_name + 5;
+		else
+			pname = write_name;
+	}
+
+	snprintf(devname, sizeof(devname), PACKAGE_NAME "-%s", pname);
+
+	jack_client = jack_client_open(devname,
 	    JackNoStartServer, NULL);
 	if (jack_client == NULL) {
 		errx(EX_UNAVAILABLE, "Could not connect "
@@ -488,10 +503,8 @@ main(int argc, char **argv)
 	jack_on_shutdown(jack_client, umidi_jack_shutdown, 0);
 
 	if (read_name != NULL) {
-		snprintf(devname, sizeof(devname), "%s.TX", read_name);
-
 		output_port = jack_port_register(
-		    jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
+		    jack_client, "TX", JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsOutput, 0);
 
 		if (output_port == NULL) {
@@ -501,10 +514,8 @@ main(int argc, char **argv)
 	}
 	if (write_name != NULL) {
 
-		snprintf(devname, sizeof(devname), "%s.RX", read_name);
-
 		input_port = jack_port_register(
-		    jack_client, devname, JACK_DEFAULT_MIDI_TYPE,
+		    jack_client, "RX", JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsInput, 0);
 
 		if (input_port == NULL) {
@@ -514,6 +525,12 @@ main(int argc, char **argv)
 	}
 	if (jack_activate(jack_client))
 		errx(EX_UNAVAILABLE, "Cannot activate JACK client.");
+
+	/* cleanup any stale connections */
+	if (input_port != NULL)
+		jack_port_disconnect(jack_client, input_port);
+	if (output_port != NULL)
+		jack_port_disconnect(jack_client, output_port);
 
 	umidi_watchdog(NULL);
 
