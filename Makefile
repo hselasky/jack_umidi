@@ -30,43 +30,50 @@
 
 VERSION=1.0.0
 
-.if exists(%%PREFIX%%)
-PREFIX=		%%PREFIX%%
-.else
-PREFIX=		/usr/local
-.endif
+PROG=		jack_umidi
 
+PREFIX?=	/usr/local
+LOCALBASE?=	/usr/local
 BINDIR=		${PREFIX}/sbin
 MANDIR=		${PREFIX}/man/man
 LIBDIR?=	${PREFIX}/lib
+INCLUDEDIR=	${PREFIX}/include
 MKLINT=		no
 NOGCCERROR=
-MLINKS=
-PROG=		jack_umidi
-MAN=		jack_umidi.1
-SRCS=		jack_umidi.c
+NO_PROFILE=
+
 CFLAGS+=	-I${PREFIX}/include -Wall
+
+LDFLAGS+=	-L${LIBDIR} -lpthread -ljack
 
 .if defined(HAVE_DEBUG)
 CFLAGS+=	-DHAVE_DEBUG
 CFLAGS+=	-g
 .endif
 
-LDFLAGS+=	-L${LIBDIR} -lpthread -ljack
+SRCS=		jack_umidi.c
 
-.include <bsd.prog.mk>
+.if defined(HAVE_MAN)
+MAN=		jack_umidi.8
+.else
+MAN=
+.endif
 
-package: clean
+package:
 
-	tar -jcvf temp.tar.bz2 \
-		Makefile *.[ch] jack_umidi.1
+	make clean cleandepend HAVE_MAN=YES
+
+	tar -cvf temp.tar \
+		Makefile jack_umidi.c jack_umidi.8
 
 	rm -rf jack_umidi-${VERSION}
 
 	mkdir jack_umidi-${VERSION}
 
-	tar -jxvf temp.tar.bz2 -C jack_umidi-${VERSION}
+	tar -xvf temp.tar -C jack_umidi-${VERSION}
 
-	rm -rf temp.tar.bz2
+	rm -rf temp.tar
 
 	tar -jcvf jack_umidi-${VERSION}.tar.bz2 jack_umidi-${VERSION}
+
+.include <bsd.prog.mk>

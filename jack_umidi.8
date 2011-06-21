@@ -26,7 +26,7 @@
 .\"
 .\"
 .Dd February 19, 2011
-.Dt JACK_UMIDI 1
+.Dt JACK_UMIDI 8
 .Sh NAME
 .Nm jack_umidi
 .Nd daemon to provide access to raw USB/socket MIDI devices via Jack
@@ -41,7 +41,7 @@
 .Nm
 is a daemon that provies access to raw USB/socket MIDI devices via the
 Jack system.
-The daemon will not exist when a device becomes unavailable, but will wait
+The daemon will not exit when a device becomes unavailable, but will wait
 until the device re-appears again.
 .Pp
 The following options are available:
