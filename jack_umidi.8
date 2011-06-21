@@ -29,7 +29,7 @@
 .Dt JACK_UMIDI 8
 .Sh NAME
 .Nm jack_umidi
-.Nd daemon to provide access to raw USB/socket MIDI devices via Jack
+.Nd daemon that converts a raw MIDI device into a JACK MIDI device.
 .Sh SYNOPSIS
 .Nm
 .Op Fl d Ar <device_name>
@@ -39,7 +39,7 @@
 .Op Fl h
 .Sh DESCRIPTION
 .Nm
-is a daemon that provies access to raw USB/socket MIDI devices via the
+is a daemon that provides access to raw USB/socket MIDI devices via the
 Jack system.
 The daemon will not exit when a device becomes unavailable, but will wait
 until the device re-appears again.
