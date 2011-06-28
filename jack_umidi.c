@@ -526,12 +526,6 @@ main(int argc, char **argv)
 	if (jack_activate(jack_client))
 		errx(EX_UNAVAILABLE, "Cannot activate JACK client.");
 
-	/* cleanup any stale connections */
-	if (input_port != NULL)
-		jack_port_disconnect(jack_client, input_port);
-	if (output_port != NULL)
-		jack_port_disconnect(jack_client, output_port);
-
 	umidi_watchdog(NULL);
 
 	return (0);
