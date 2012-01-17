@@ -421,6 +421,7 @@ usage()
 	    "	-C /dev/umidi0.0 (set capture device)\n"
 	    "	-P /dev/umidi0.0 (set playback device)\n"
 	    "	-B (run in background)\n"
+	    "	-n jack_umidi (specify port name)\n"
 	    "	-h (show help)\n");
 	exit(0);
 }
