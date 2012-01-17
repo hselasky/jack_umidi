@@ -45,7 +45,7 @@
 #include <jack/ringbuffer.h>
 
 #define	PACKAGE_NAME		"jack_umidi"
-#define	PACKAGE_VERSION		"1.0"
+#define	PACKAGE_VERSION		"1.0.2"
 
 static jack_port_t *output_port;
 static jack_port_t *input_port;
@@ -55,6 +55,7 @@ static int write_fd = -1;
 static int background;
 static char *read_name;
 static char *write_name;
+static char *port_name;
 static pthread_mutex_t umidi_mtx;
 
 struct midi_parse {
@@ -438,7 +439,7 @@ main(int argc, char **argv)
 	const char *pname;
 	char devname[64];
 
-	while ((c = getopt(argc, argv, "Bd:hP:C:")) != -1) {
+	while ((c = getopt(argc, argv, "Bd:hP:C:n:")) != -1) {
 		switch (c) {
 		case 'B':
 			background = 1;
@@ -456,6 +457,10 @@ main(int argc, char **argv)
 		case 'C':
 			free(read_name);
 			read_name = strdup(optarg);
+			break;
+		case 'n':
+			free(port_name);
+			port_name = strdup(optarg);
 			break;
 		case 'h':
 		default:
@@ -486,7 +491,8 @@ main(int argc, char **argv)
 			pname = write_name;
 	}
 
-	snprintf(devname, sizeof(devname), PACKAGE_NAME "-%s", pname);
+	snprintf(devname, sizeof(devname), "%s-%s",
+	    (port_name != NULL) ? port_name : PACKAGE_NAME, pname);
 
 	jack_client = jack_client_open(devname,
 	    JackNoStartServer, NULL);
