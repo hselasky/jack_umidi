@@ -45,7 +45,7 @@
 #include <jack/ringbuffer.h>
 
 #define	PACKAGE_NAME		"jack_umidi"
-#define	PACKAGE_VERSION		"1.0.2"
+#define	PACKAGE_VERSION		"1.0.3"
 
 static jack_port_t *output_port;
 static jack_port_t *input_port;

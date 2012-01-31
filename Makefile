@@ -28,7 +28,7 @@
 # Jack client Makefile for USB/RAW MIDI sockets and character devices.
 #
 
-VERSION=1.0.2
+VERSION=1.0.3
 
 PROG=		jack_umidi
 
