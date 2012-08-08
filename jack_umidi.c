@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 Hans Petter Selasky <hselasky@FreeBSD.org>
+ * Copyright (c) 2011-2012 Hans Petter Selasky <hselasky@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,14 +45,21 @@
 #include <jack/ringbuffer.h>
 
 #define	PACKAGE_NAME		"jack_umidi"
-#define	PACKAGE_VERSION		"1.0.3"
+#define	PACKAGE_VERSION		"1.0.4"
 
-static jack_port_t *output_port;
+#define	JACK_OUT_MAX	17		/* units */
+
+static jack_port_t *output_port[JACK_OUT_MAX];
 static jack_port_t *input_port;
 static jack_client_t *jack_client;
+static uint8_t read_buffer[16];
+static int read_offset;
+static int read_len;
 static int read_fd = -1;
 static int write_fd = -1;
+static int kill_on_close;
 static int background;
+static int create_sub;
 static char *read_name;
 static char *write_name;
 static char *port_name;
@@ -289,51 +296,107 @@ umidi_convert_to_usb(uint8_t cn, uint8_t b)
 	return (0);
 }
 
+/*
+ * By using a read buffer we avoid multiple sys-calls for a single
+ * MIDI command.
+ */
+static int
+read_byte(int fd, uint8_t *buf)
+{
+top:
+	if (read_offset < read_len) {
+		*buf = read_buffer[read_offset];
+		read_offset++;
+		return (1);
+	}
+	read_len = read(fd, read_buffer, sizeof(read_buffer));
+	read_offset = 0;
+	if (read_len > 0) {
+		DPRINTF("got %d MIDI bytes\n", read_len);
+		goto top;
+	}
+	*buf = 0;
+	read_len = 0;
+	return (-1);
+}
+
 static void
 umidi_read(jack_nframes_t nframes)
 {
 	uint8_t *buffer;
-	void *buf;
-	jack_nframes_t t;
-	uint8_t data[1];
+	void *buf[JACK_OUT_MAX];
+	jack_nframes_t t[JACK_OUT_MAX];
+	uint32_t x;
+	uint8_t data;
 	uint8_t len;
 
-	if (output_port == NULL)
-		return;
-
-	buf = jack_port_get_buffer(output_port, nframes);
-	if (buf == NULL) {
-		DPRINTF("jack_port_get_buffer() failed, cannot send anything.\n");
-		return;
-	}
+	for (x = 0; x != JACK_OUT_MAX; x++) {
+		if (output_port[x] == NULL) {
+			buf[x] = NULL;
+			continue;
+		}
+		buf[x] = jack_port_get_buffer(output_port[x], nframes);
+		if (buf[x] != NULL) {
 #ifdef JACK_MIDI_NEEDS_NFRAMES
-	jack_midi_clear_buffer(buf, nframes);
+			jack_midi_clear_buffer(buf[x], nframes);
 #else
-	jack_midi_clear_buffer(buf);
+			jack_midi_clear_buffer(buf[x]);
 #endif
+		} else {
+			DPRINTF("jack_port_get_buffer() failed, "
+			    "cannot send anything on unit %d.\n", (int)x);
+		}
+	}
 
-	t = 0;
+	memset(t, 0, sizeof(t));
+
 	umidi_lock();
 	if (read_fd > -1) {
-		while ((t < nframes) &&
-		    (read(read_fd, data, sizeof(data)) == sizeof(data))) {
-			if (umidi_convert_to_usb(0, data[0])) {
+		while ((t[0] < nframes) &&
+		    (read_byte(read_fd, &data) == 1)) {
+			if (umidi_convert_to_usb(0, data)) {
 
 				len = umidi_cmd_to_len[midi_parse.temp_cmd[0] & 0xF];
 				if (len == 0)
 					continue;
+
+				for (x = 0; x != JACK_OUT_MAX; x++) {
+
+					if (buf[x] == NULL ||
+					    t[x] >= nframes) {
+						DPRINTF("Buffer full. "
+						    "MIDI event lost\n");
+						continue;
+					}
+					if (x == 0) {
+						/* pass all */
+					} else if (create_sub == 0) {
+						break;
+					} else if (midi_parse.temp_cmd[1] >= 0x80 &&
+					    midi_parse.temp_cmd[1] <= 0xEF) {
+						/* filter based on channel */
+						if ((midi_parse.temp_cmd[1] & 0x0F) != (x - 1))
+							continue;
+					} else {
+						/*
+						 * non-channel events are
+						 * dropped
+						 */
+						continue;
+					}
 #ifdef JACK_MIDI_NEEDS_NFRAMES
-				buffer = jack_midi_event_reserve(buf, t, len, nframes);
+					buffer = jack_midi_event_reserve(buf[x], t[x], len, nframes);
 #else
-				buffer = jack_midi_event_reserve(buf, t, len);
+					buffer = jack_midi_event_reserve(buf[x], t[x], len);
 #endif
-				if (buffer == NULL) {
-					DPRINTF("jack_midi_event_reserve() failed, "
-					    "MIDI event lost\n");
-					break;
+					if (buffer == NULL) {
+						DPRINTF("jack_midi_event_reserve() failed, "
+						    "MIDI event lost\n");
+						continue;
+					}
+					memcpy(buffer, &midi_parse.temp_cmd[1], len);
+					t[x]++;
 				}
-				memcpy(buffer, &midi_parse.temp_cmd[1], len);
-				t++;
 			}
 		}
 	}
@@ -377,6 +440,7 @@ umidi_watchdog(void *arg)
 			if (fd > -1) {
 				umidi_lock();
 				read_fd = fd;
+				fcntl(read_fd, F_SETFL, (int)O_NONBLOCK);
 				umidi_unlock();
 			}
 		} else {
@@ -385,6 +449,9 @@ umidi_watchdog(void *arg)
 				DPRINTF("Close read\n");
 				close(read_fd);
 				read_fd = -1;
+				read_offset = 0;
+				read_len = 0;
+				memset(read_buffer, 0, sizeof(read_buffer));
 			}
 			umidi_unlock();
 		}
@@ -396,6 +463,7 @@ umidi_watchdog(void *arg)
 			if (fd > -1) {
 				umidi_lock();
 				write_fd = fd;
+				fcntl(write_fd, F_SETFL, (int)0);
 				umidi_unlock();
 			}
 		} else {
@@ -407,7 +475,12 @@ umidi_watchdog(void *arg)
 			}
 			umidi_unlock();
 		}
-
+		if (kill_on_close != 0) {
+			if (write_name != NULL && write_fd == -1)
+				exit(0);
+			if (read_name != NULL && read_fd == -1)
+				exit(0);
+		}
 		usleep(1000000);
 	}
 }
@@ -420,7 +493,9 @@ usage()
 	    "	-d /dev/umidi0.0 (set capture and playback device)\n"
 	    "	-C /dev/umidi0.0 (set capture device)\n"
 	    "	-P /dev/umidi0.0 (set playback device)\n"
+	    "	-S (create per channel subdevices for capture device)\n"
 	    "	-B (run in background)\n"
+	    "	-k (terminate client if a device goes away)\n"
 	    "	-n jack_umidi (specify port name)\n"
 	    "	-h (show help)\n");
 	exit(0);
@@ -437,11 +512,15 @@ main(int argc, char **argv)
 {
 	int error;
 	int c;
+	unsigned int x;
 	const char *pname;
 	char devname[64];
 
-	while ((c = getopt(argc, argv, "Bd:hP:C:n:")) != -1) {
+	while ((c = getopt(argc, argv, "kBd:hP:SC:n:")) != -1) {
 		switch (c) {
+		case 'k':
+			kill_on_close = 1;
+			break;
 		case 'B':
 			background = 1;
 			break;
@@ -462,6 +541,9 @@ main(int argc, char **argv)
 		case 'n':
 			free(port_name);
 			port_name = strdup(optarg);
+			break;
+		case 'S':
+			create_sub = 1;
 			break;
 		case 'h':
 		default:
@@ -510,13 +592,31 @@ main(int argc, char **argv)
 	jack_on_shutdown(jack_client, umidi_jack_shutdown, 0);
 
 	if (read_name != NULL) {
-		output_port = jack_port_register(
+		output_port[0] = jack_port_register(
 		    jack_client, "midi.TX", JACK_DEFAULT_MIDI_TYPE,
 		    JackPortIsOutput, 0);
 
-		if (output_port == NULL) {
+		if (output_port[0] == NULL) {
 			errx(EX_UNAVAILABLE, "Could not "
 			    "register JACK output port.");
+		}
+		if (create_sub != 0) {
+			char name[16];
+
+			for (x = 1; x != JACK_OUT_MAX; x++) {
+				snprintf(name, sizeof(name),
+				    "midi.TX.CH%u", x - 1);
+
+				output_port[x] = jack_port_register(
+				    jack_client, name, JACK_DEFAULT_MIDI_TYPE,
+				    JackPortIsOutput, 0);
+
+				if (output_port[x] == NULL) {
+					errx(EX_UNAVAILABLE, "Could not "
+					    "register JACK output port,"
+					    " %s.", name);
+				}
+			}
 		}
 	}
 	if (write_name != NULL) {

@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (c) 2011 Hans Petter Selasky <hselasky@freebsd.org>
+.\" Copyright (c) 2011-2012 Hans Petter Selasky <hselasky@freebsd.org>
 .\"
 .\" All rights reserved.
 .\"
@@ -25,7 +25,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"
-.Dd January 17, 2012
+.Dd August 8, 2012
 .Dt JACK_UMIDI 8
 .Sh NAME
 .Nm jack_umidi
@@ -36,7 +36,9 @@
 .Op Fl P Ar <capture_device_name>
 .Op Fl P Ar <playback_device_name>
 .Op Fl n Ar <port_name>
+.Op Fl k
 .Op Fl B
+.Op Fl S
 .Op Fl h
 .Sh DESCRIPTION
 .Nm
@@ -47,8 +49,13 @@ until the device re-appears again.
 .Pp
 The following options are available:
 .Bl -tag -width indent
+.It Fl k
+Terminate the client when the first capture or playback device is no longer available.
+Else the client will try to re-connect.
 .It Fl B
-Run the daemon in background mode.
+Run the client in background mode.
+.It Fl S
+Create 16 JACK subdevices for the capture device. One for each MIDI channel.
 .It Fl d
 Specify the device name of the USB device to use, for example /dev/umidi0.0 .
 .It Fl C
@@ -64,10 +71,18 @@ Print help text showing available options.
 .Sh EXAMPLES
 .Pp
 .Bd -literal -offset indent
+# Start Jack MIDI client in background mode
 jack_umidi -d /dev/umidi0.0 -B
+
+# List all available JACK ports
+jack_lsp
+
+# Connect two JACK ports
+jack_connect port1 port2
 .Ed
 .Sh SEE ALSO
-.Xr jackd 1
+.Xr jackd 1 ,
+.Xr jack-keyboard 1
 .Sh TROUBLESHOOTING
 Check that the permissions are correct for your MIDI devices.
 .Sh HISTORY
