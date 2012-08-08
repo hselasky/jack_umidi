@@ -605,7 +605,7 @@ main(int argc, char **argv)
 
 			for (x = 1; x != JACK_OUT_MAX; x++) {
 				snprintf(name, sizeof(name),
-				    "midi.TX.CH%u", x - 1);
+				    "midi.TX.CH%X", x - 1);
 
 				output_port[x] = jack_port_register(
 				    jack_client, name, JACK_DEFAULT_MIDI_TYPE,
