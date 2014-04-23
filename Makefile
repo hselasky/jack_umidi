@@ -75,6 +75,6 @@ package:
 
 	rm -rf temp.tar
 
-	tar -jcvf jack_umidi-${VERSION}.tar.bz2 jack_umidi-${VERSION}
+	tar --uid=0 --gid=0 -jcvf jack_umidi-${VERSION}.tar.bz2 jack_umidi-${VERSION}
 
 .include <bsd.prog.mk>
