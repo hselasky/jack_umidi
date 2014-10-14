@@ -39,6 +39,8 @@
 #include <pthread.h>
 #include <err.h>
 #include <sysexits.h>
+#include <sys/errno.h>
+#include <sys/sysctl.h>
 
 #include <jack/jack.h>
 #include <jack/midiport.h>
@@ -512,9 +514,11 @@ main(int argc, char **argv)
 {
 	int error;
 	int c;
+	int unit = -1;
+	int subunit = -1;
 	unsigned int x;
 	const char *pname;
-	char devname[64];
+	char devname[128];
 
 	while ((c = getopt(argc, argv, "kBd:hP:SC:n:")) != -1) {
 		switch (c) {
@@ -563,19 +567,57 @@ main(int argc, char **argv)
 	pthread_mutex_init(&umidi_mtx, NULL);
 
 	if (read_name != NULL) {
-		if (strncmp(read_name, "/dev/", 5) == 0)
+		if (strncmp(read_name, "/dev/", 5) == 0) {
 			pname = read_name + 5;
-		else
+			sscanf(read_name, "/dev/umidi%d.%d", &unit, &subunit);
+		} else {
 			pname = read_name;
+		}
 	} else {
-		if (strncmp(write_name, "/dev/", 5) == 0)
+		if (strncmp(write_name, "/dev/", 5) == 0) {
 			pname = write_name + 5;
-		else
+			sscanf(write_name, "/dev/umidi%d.%d", &unit, &subunit);
+		} else {
 			pname = write_name;
+		}
 	}
 
-	snprintf(devname, sizeof(devname), "%s-%s",
-	    (port_name != NULL) ? port_name : PACKAGE_NAME, pname);
+	if (unit > -1) {
+		size_t size = sizeof(devname);
+
+		/* create sysctl name */
+		snprintf(devname, sizeof(devname),
+		    "dev.uaudio.%d.%%desc", unit);
+
+		/* lookup sysctl */
+		if (sysctlbyname(devname, devname, &size, NULL, 0) == 0 ||
+		    (errno == ENOMEM)) {
+			char *ptr;
+
+			/* check string length */
+			if (size > sizeof(devname) - 1)
+				size = sizeof(devname) - 1;
+
+			/* zero terminate */
+			devname[size] = 0;
+
+			/* split */
+			ptr = strchr(devname, ',');
+			if (ptr != NULL) {
+				size = ptr - devname;
+				*ptr = 0;
+			}
+			/* append port number */
+			snprintf(devname + size, sizeof(devname) - size,
+			    " #%d", subunit);
+		} else {
+			snprintf(devname, sizeof(devname), "%s-%s",
+			    (port_name != NULL) ? port_name : PACKAGE_NAME, pname);
+		}
+	} else {
+		snprintf(devname, sizeof(devname), "%s-%s",
+		    (port_name != NULL) ? port_name : PACKAGE_NAME, pname);
+	}
 
 	jack_client = jack_client_open(devname,
 	    JackNoStartServer, NULL);
