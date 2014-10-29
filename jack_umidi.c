@@ -48,7 +48,7 @@
 #include <jack/ringbuffer.h>
 
 #define	PACKAGE_NAME		"jack_umidi"
-#define	PACKAGE_VERSION		"1.0.6"
+#define	PACKAGE_VERSION		"1.0.7"
 
 #define	JACK_OUT_MAX	17		/* units */
 
