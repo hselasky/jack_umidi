@@ -41,6 +41,7 @@
 #include <sysexits.h>
 #include <sys/errno.h>
 #include <sys/sysctl.h>
+#include <pwd.h>
 
 #include <jack/jack.h>
 #include <jack/midiport.h>
@@ -66,6 +67,8 @@ static char *read_name;
 static char *write_name;
 static char *port_name;
 static pthread_mutex_t umidi_mtx;
+static uid_t uid;
+static int uid_found;
 
 struct midi_parse {
 	uint8_t *temp_cmd;
@@ -99,6 +102,27 @@ static void
 umidi_unlock()
 {
 	pthread_mutex_unlock(&umidi_mtx);
+}
+
+static uid_t
+umidi_id(const char *name, const char *type)
+{
+	uid_t val;
+	char *ep;
+
+	val = strtoul(name, &ep, 10);
+	if (*ep != '\0')
+		errx(EX_USAGE, "%s: illegal %s name", name, type);
+	return (val);
+}
+
+static void
+umidi_uid(const char *s)
+{
+	struct passwd *pw;
+
+	uid = ((pw = getpwnam(s)) != NULL) ? pw->pw_uid : umidi_id(s, "user");
+	uid_found = 1;
 }
 
 static void
@@ -496,6 +520,7 @@ usage()
 	    "	-C /dev/umidi0.0 (set capture device)\n"
 	    "	-P /dev/umidi0.0 (set playback device)\n"
 	    "	-S (create per channel subdevices for capture device)\n"
+	    "	-U <username> (attach to this JACK user)\n"
 	    "	-B (run in background)\n"
 	    "	-k (terminate client if a device goes away)\n"
 	    "	-n jack_umidi (specify port name)\n"
@@ -520,7 +545,7 @@ main(int argc, char **argv)
 	const char *pname;
 	char devname[128];
 
-	while ((c = getopt(argc, argv, "kBd:hP:SC:n:")) != -1) {
+	while ((c = getopt(argc, argv, "U:kBd:hP:SC:n:")) != -1) {
 		switch (c) {
 		case 'k':
 			kill_on_close = 1;
@@ -549,6 +574,9 @@ main(int argc, char **argv)
 		case 'S':
 			create_sub = 1;
 			break;
+		case 'U':
+			umidi_uid(optarg);
+			break;
 		case 'h':
 		default:
 			usage();
@@ -557,6 +585,9 @@ main(int argc, char **argv)
 
 	if (read_name == NULL && write_name == NULL)
 		usage();
+
+	if (uid_found != 0 && setuid(uid) != 0)
+		errx(EX_UNAVAILABLE, "Could not set user ID");
 
 	if (background) {
 		if (daemon(0, 0))

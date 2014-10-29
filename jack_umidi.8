@@ -25,7 +25,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"
-.Dd August 8, 2012
+.Dd October 29, 2012
 .Dt JACK_UMIDI 8
 .Sh NAME
 .Nm jack_umidi
@@ -39,6 +39,7 @@
 .Op Fl k
 .Op Fl B
 .Op Fl S
+.Op Fl U Ar <username>
 .Op Fl h
 .Sh DESCRIPTION
 .Nm
@@ -65,6 +66,9 @@ Specify a custom port name when registering with the JACK server.
 The default value is "jack_midi".
 .It Fl P
 Specify the playback only device name of the USB device to use, for example /dev/umidi0.0 .
+.It Fl U
+Specify which JACK user the program should attach to.
+Default is same as running user.
 .It Fl h
 Print help text showing available options.
 .El
