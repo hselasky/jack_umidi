@@ -452,55 +452,62 @@ umidi_jack_shutdown(void *arg)
 	exit(0);
 }
 
-static void *
-umidi_watchdog(void *arg)
+static void
+umidi_watchdog_sub(void)
 {
 	int fd;
 
+	if (read_name == NULL) {
+		/* do nothing */
+	} else if (read_fd < 0) {
+		fd = open(read_name, O_RDONLY | O_NONBLOCK);
+		if (fd > -1) {
+			umidi_lock();
+			read_fd = fd;
+			fcntl(read_fd, F_SETFL, (int)O_NONBLOCK);
+			umidi_unlock();
+		}
+	} else {
+		umidi_lock();
+		if (fcntl(read_fd, F_SETFL, (int)O_NONBLOCK) == -1) {
+			DPRINTF("Close read\n");
+			close(read_fd);
+			read_fd = -1;
+			read_offset = 0;
+			read_len = 0;
+			memset(read_buffer, 0, sizeof(read_buffer));
+		}
+		umidi_unlock();
+	}
+
+	if (write_name == NULL) {
+		/* do nothing */
+	} else if (write_fd < 0) {
+		fd = open(write_name, O_WRONLY);
+		if (fd > -1) {
+			umidi_lock();
+			write_fd = fd;
+			fcntl(write_fd, F_SETFL, (int)0);
+			umidi_unlock();
+		}
+	} else {
+		umidi_lock();
+		if (fcntl(write_fd, F_SETFL, (int)0) == -1) {
+			DPRINTF("Close write\n");
+			close(write_fd);
+			write_fd = -1;
+		}
+		umidi_unlock();
+	}
+}
+
+static void *
+umidi_watchdog(void *arg)
+{
 	while (1) {
+		/* try to open MIDI device */
+		umidi_watchdog_sub();
 
-		if (read_name == NULL) {
-			/* do nothing */
-		} else if (read_fd < 0) {
-			fd = open(read_name, O_RDONLY | O_NONBLOCK);
-			if (fd > -1) {
-				umidi_lock();
-				read_fd = fd;
-				fcntl(read_fd, F_SETFL, (int)O_NONBLOCK);
-				umidi_unlock();
-			}
-		} else {
-			umidi_lock();
-			if (fcntl(read_fd, F_SETFL, (int)O_NONBLOCK) == -1) {
-				DPRINTF("Close read\n");
-				close(read_fd);
-				read_fd = -1;
-				read_offset = 0;
-				read_len = 0;
-				memset(read_buffer, 0, sizeof(read_buffer));
-			}
-			umidi_unlock();
-		}
-
-		if (write_name == NULL) {
-			/* do nothing */
-		} else if (write_fd < 0) {
-			fd = open(write_name, O_WRONLY);
-			if (fd > -1) {
-				umidi_lock();
-				write_fd = fd;
-				fcntl(write_fd, F_SETFL, (int)0);
-				umidi_unlock();
-			}
-		} else {
-			umidi_lock();
-			if (fcntl(write_fd, F_SETFL, (int)0) == -1) {
-				DPRINTF("Close write\n");
-				close(write_fd);
-				write_fd = -1;
-			}
-			umidi_unlock();
-		}
 		if (kill_on_close != 0) {
 			if (write_name != NULL && write_fd == -1)
 				exit(0);
@@ -585,6 +592,9 @@ main(int argc, char **argv)
 
 	if (read_name == NULL && write_name == NULL)
 		usage();
+
+	/* try to open MIDI device early on */
+	umidi_watchdog_sub();
 
 	if (uid_found != 0 && setuid(uid) != 0)
 		errx(EX_UNAVAILABLE, "Could not set user ID");
