@@ -593,12 +593,6 @@ main(int argc, char **argv)
 	if (read_name == NULL && write_name == NULL)
 		usage();
 
-	/* try to open MIDI device early on */
-	umidi_watchdog_sub();
-
-	if (uid_found != 0 && setuid(uid) != 0)
-		errx(EX_UNAVAILABLE, "Could not set user ID");
-
 	if (background) {
 		if (daemon(0, 0))
 			errx(EX_UNAVAILABLE, "Could not become daemon");
@@ -606,6 +600,12 @@ main(int argc, char **argv)
 	signal(SIGPIPE, umidi_pipe);
 
 	pthread_mutex_init(&umidi_mtx, NULL);
+
+	/* try to open MIDI device early on */
+	umidi_watchdog_sub();
+
+	if (uid_found != 0 && setuid(uid) != 0)
+		errx(EX_UNAVAILABLE, "Could not set user ID");
 
 	if (read_name != NULL) {
 		if (strncmp(read_name, "/dev/", 5) == 0) {
