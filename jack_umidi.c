@@ -677,7 +677,8 @@ main(int argc, char **argv)
 	if (read_name != NULL) {
 		output_port[0] = jack_port_register(
 		    jack_client, "midi.TX", JACK_DEFAULT_MIDI_TYPE,
-		    JackPortIsOutput, 0);
+		    JackPortIsOutput | JackPortIsPhysical |
+		    JackPortIsTerminal, 0);
 
 		if (output_port[0] == NULL) {
 			errx(EX_UNAVAILABLE, "Could not "
@@ -706,7 +707,8 @@ main(int argc, char **argv)
 
 		input_port = jack_port_register(
 		    jack_client, "midi.RX", JACK_DEFAULT_MIDI_TYPE,
-		    JackPortIsInput, 0);
+		    JackPortIsInput | JackPortIsPhysical |
+		    JackPortIsTerminal, 0);
 
 		if (input_port == NULL) {
 			errx(EX_UNAVAILABLE, "Could not "
