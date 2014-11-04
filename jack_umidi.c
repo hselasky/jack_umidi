@@ -693,6 +693,7 @@ main(int argc, char **argv)
 
 				output_port[x] = jack_port_register(
 				    jack_client, name, JACK_DEFAULT_MIDI_TYPE,
+				    JackPortIsPhysical | JackPortIsTerminal |
 				    JackPortIsOutput, 0);
 
 				if (output_port[x] == NULL) {
