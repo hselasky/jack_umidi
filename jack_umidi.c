@@ -40,7 +40,9 @@
 #include <err.h>
 #include <sysexits.h>
 #include <sys/errno.h>
+#ifdef HAVE_SYSCTL
 #include <sys/sysctl.h>
+#endif
 #include <pwd.h>
 
 #include <jack/jack.h>
@@ -623,6 +625,7 @@ main(int argc, char **argv)
 		}
 	}
 
+#ifdef HAVE_SYSCTL
 	if (unit > -1) {
 		size_t size = sizeof(devname);
 
@@ -656,9 +659,12 @@ main(int argc, char **argv)
 			    (port_name != NULL) ? port_name : PACKAGE_NAME, pname);
 		}
 	} else {
+#endif
 		snprintf(devname, sizeof(devname), "%s-%s",
 		    (port_name != NULL) ? port_name : PACKAGE_NAME, pname);
+#ifdef HAVE_SYSCTL
 	}
+#endif
 
 	jack_client = jack_client_open(devname,
 	    JackNoStartServer, NULL);

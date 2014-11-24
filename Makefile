@@ -52,6 +52,8 @@ CFLAGS+=	-DHAVE_DEBUG
 CFLAGS+=	-g
 .endif
 
+CFLAGS+=	-DHAVE_SYSCTL
+
 SRCS=		jack_umidi.c
 
 .if defined(HAVE_MAN)
