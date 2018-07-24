@@ -40,7 +40,6 @@ LIBDIR=		${PREFIX}/lib
 INCLUDEDIR=	${PREFIX}/include
 MKLINT=		no
 NOGCCERROR=
-NO_PROFILE=
 PTHREAD_LIBS?=  -lpthread
 
 CFLAGS+=	-I${PREFIX}/include -Wall

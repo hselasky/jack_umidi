@@ -651,6 +651,11 @@ main(int argc, char **argv)
 				size = ptr - devname;
 				*ptr = 0;
 			}
+			/* limit the string length */
+			if (strlen(devname) > 16) {
+				devname[16] = 0;
+				size = 16;
+			}
 			/* append port number */
 			snprintf(devname + size, sizeof(devname) - size,
 			    " #%d", subunit);
