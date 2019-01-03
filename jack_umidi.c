@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2012 Hans Petter Selasky <hselasky@FreeBSD.org>
+ * Copyright (c) 2011-2018 Hans Petter Selasky <hselasky@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -626,7 +626,7 @@ main(int argc, char **argv)
 	}
 
 #ifdef HAVE_SYSCTL
-	if (unit > -1) {
+	if (unit > -1 && port_name == NULL) {
 		size_t size = sizeof(devname);
 
 		/* create sysctl name */
@@ -661,7 +661,7 @@ main(int argc, char **argv)
 			    " #%d", subunit);
 		} else {
 			snprintf(devname, sizeof(devname), "%s-%s",
-			    (port_name != NULL) ? port_name : PACKAGE_NAME, pname);
+			    PACKAGE_NAME, pname);
 		}
 	} else {
 #endif
