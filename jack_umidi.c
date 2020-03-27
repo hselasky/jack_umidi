@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2018 Hans Petter Selasky <hselasky@FreeBSD.org>
+ * Copyright (c) 2011-2020 Hans Petter Selasky <hselasky@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

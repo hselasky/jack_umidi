@@ -1,7 +1,7 @@
 #
 # $FreeBSD: $
 #
-# Copyright (c) 2011 Hans Petter Selasky. All rights reserved.
+# Copyright (c) 2011-2020 Hans Petter Selasky. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@
 # Jack client Makefile for USB/RAW MIDI sockets and character devices.
 #
 
-VERSION=1.0.10
+VERSION=1.1.0
 
 PROG=		jack_umidi
 
