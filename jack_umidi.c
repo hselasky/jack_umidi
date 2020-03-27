@@ -455,6 +455,17 @@ umidi_jack_shutdown(void *arg)
 }
 
 static void
+umidi_kill_on_close(void)
+{
+	if (kill_on_close != 0) {
+		if (write_name != NULL && write_fd == -1)
+			exit(0);
+		if (read_name != NULL && read_fd == -1)
+			exit(0);
+	}
+}
+
+static void
 umidi_watchdog_sub(void)
 {
 	int fd;
@@ -507,16 +518,14 @@ static void *
 umidi_watchdog(void *arg)
 {
 	while (1) {
-		/* try to open MIDI device */
-		umidi_watchdog_sub();
+		/* check if we should close */
+		umidi_kill_on_close();
 
-		if (kill_on_close != 0) {
-			if (write_name != NULL && write_fd == -1)
-				exit(0);
-			if (read_name != NULL && read_fd == -1)
-				exit(0);
-		}
+		/* wait a bit */
 		usleep(1000000);
+
+		/* check status of MIDI device */
+		umidi_watchdog_sub();
 	}
 }
 
@@ -671,9 +680,22 @@ main(int argc, char **argv)
 	}
 #endif
 
+retry:
 	jack_client = jack_client_open(devname,
 	    JackNoStartServer, NULL);
 	if (jack_client == NULL) {
+		if (background) {
+			/* check if we should close */
+			umidi_kill_on_close();
+
+			/* wait a bit */
+			usleep(1000000);
+
+			/* check status of MIDI device */
+			umidi_watchdog_sub();
+
+			goto retry;
+		}
 		errx(EX_UNAVAILABLE, "Could not connect "
 		    "to the JACK server. Run jackd first?");
 	}
