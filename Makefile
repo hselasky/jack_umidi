@@ -1,7 +1,7 @@
 #
 # $FreeBSD: $
 #
-# Copyright (c) 2011-2020 Hans Petter Selasky. All rights reserved.
+# Copyright (c) 2011-2021 Hans Petter Selasky. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,8 +27,6 @@
 #
 # Jack client Makefile for USB/RAW MIDI sockets and character devices.
 #
-
-VERSION=1.1.1
 
 PROG=		jack_umidi
 
@@ -60,22 +58,5 @@ MAN=		jack_umidi.8
 .else
 MAN=
 .endif
-
-package:
-
-	make clean cleandepend HAVE_MAN=YES
-
-	tar -cvf temp.tar \
-		Makefile jack_umidi.c jack_umidi.8
-
-	rm -rf jack_umidi-${VERSION}
-
-	mkdir jack_umidi-${VERSION}
-
-	tar -xvf temp.tar -C jack_umidi-${VERSION}
-
-	rm -rf temp.tar
-
-	tar --uid=0 --gid=0 -jcvf jack_umidi-${VERSION}.tar.bz2 jack_umidi-${VERSION}
 
 .include <bsd.prog.mk>

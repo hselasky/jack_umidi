@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2020 Hans Petter Selasky <hselasky@FreeBSD.org>
+ * Copyright (c) 2011-2021 Hans Petter Selasky <hselasky@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,6 @@
 #include <jack/ringbuffer.h>
 
 #define	PACKAGE_NAME		"jack_umidi"
-#define	PACKAGE_VERSION		"1.0.9"
 
 #define	JACK_OUT_MAX	17		/* units */
 
@@ -533,7 +532,7 @@ static void
 usage()
 {
 	fprintf(stderr,
-	    "jack_umidi - RAW USB/socket MIDI client v" PACKAGE_VERSION "\n"
+	    "jack_umidi - RAW USB/socket MIDI client\n"
 	    "	-d /dev/umidi0.0 (set capture and playback device)\n"
 	    "	-C /dev/umidi0.0 (set capture device)\n"
 	    "	-P /dev/umidi0.0 (set playback device)\n"
