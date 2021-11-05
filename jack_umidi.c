@@ -514,8 +514,8 @@ umidi_watchdog_sub(void)
 	}
 }
 
-static void *
-umidi_watchdog(void *arg)
+static void
+umidi_watchdog(void)
 {
 	while (1) {
 		/* check if we should close */
@@ -752,7 +752,7 @@ retry:
 	if (jack_activate(jack_client))
 		errx(EX_UNAVAILABLE, "Cannot activate JACK client.");
 
-	umidi_watchdog(NULL);
+	umidi_watchdog();
 
 	return (0);
 }
