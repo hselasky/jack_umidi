@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <err.h>
+#include <errno.h>
 #include <sysexits.h>
 #include <sys/errno.h>
 #ifdef HAVE_SYSCTL
